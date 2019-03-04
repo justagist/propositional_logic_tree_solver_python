@@ -1,4 +1,4 @@
-
+import copy
 from bst_src import NodeType
 
 
@@ -57,7 +57,7 @@ class BinaryTreeNode:
 
         return retval.pop()
         
-    def get_reverse_polish(self, node_queue = []):
+    def get_reverse_polish(self, node_queue = None):
         '''
             Returns the list of NodeType entries which, if provide to
             reversePolishBuilder, would construct the current tree.
@@ -73,12 +73,17 @@ class BinaryTreeNode:
                       specification of this tree
      
         '''
-        if self._child1 != None:
+        if node_queue is None: # ----- setting default function arg value = [] does not work for some reason
+            node_queue = []
+
+        if self._child1 is not None:
             self._child1.get_reverse_polish(node_queue)
-        if self._child2 != None:
+        if self._child2 is not None:
             self._child2.get_reverse_polish(node_queue)
 
         node_queue.append(self._type)
+
+        # print(node_queue)
 
         return node_queue
 
@@ -134,6 +139,53 @@ class BinaryTreeNode:
         else:
             raise ValueError("Invalid Arity")
 
+    def apply_variable_bindings(self, val_bindings_map):
+
+        '''
+            Applies a set of variable bindings recursively to the propositional logic
+            expression represented by the current <BinaryTreeNode>
+            
+            @Args: bindings
+                       A map that maps NodeType objects to boolean
+                       values. Any variable in bindings that does not
+                       appear in the tree will be ignored. Any NodeType
+                       in bindings that is not a variable will be ignored.
+            
+        '''
+        # print (self._type, self._child1, self._child2, "type")
+
+        if not self._type.is_var():
+            if self._child1 is not None:
+                self._child1.apply_variable_bindings(val_bindings_map)
+            if self._child2 is not None:
+                self._child2.apply_variable_bindings(val_bindings_map)
+
+        else:
+            for val, binding in val_bindings_map:
+                if val == self._type:
+                    self._type = NodeType.TRUE if binding == True else NodeType.FALSE
+
+    def eliminate_implies(self):
+
+        '''
+            Recursively replace in place every occurrence of the
+            pattern x→y with ¬x∨y, for sub-trees x and y           
+
+        '''
+        if self._child1 is not None:
+            self._child1.eliminate_implies()
+        if self._child2 is not None:
+            self._child2.eliminate_implies()
+
+        if self._type == NodeType.IMPLIES:
+            self._type = NodeType.OR
+
+            new_child = copy.deepcopy(self._child1)
+            self._child1._type = NodeType.NOT
+            self._child1._child1 = new_child
+            self._child1._child2 = None
+
+
 
 
     def __str__(self):
@@ -141,6 +193,9 @@ class BinaryTreeNode:
 
     def __repr__(self):
         return str(self._type)
+
+    def __eq__(self,other):
+        return self.__dict__ == other.__dict__
 
 
 if __name__ == '__main__':
@@ -154,4 +209,8 @@ if __name__ == '__main__':
     tree = BinaryTreeNode.build_from_reverse_polish(types)
 
     print (tree.in_infix_notation())
+
+    # print(a._child1._type == NodeType.A)
+    # print (a._child1.__dict__)
+    # print ()
 

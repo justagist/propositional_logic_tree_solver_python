@@ -30,6 +30,9 @@ class NodeTypeBase(object):
     def arity(self):
         return self._arity
 
+    def is_var(self):
+        return self._is_var
+
     @classmethod
     def Variable(cls, val : str):
         '''
@@ -47,6 +50,9 @@ class NodeTypeBase(object):
 
     def __repr__(self):
         return self.prefix_name
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
     
 
