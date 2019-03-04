@@ -186,6 +186,66 @@ class BinaryTreeNode:
             self._child1._child2 = None
 
 
+    def push_not_down(self):
+
+        '''
+            Recursively replace in-place, for sub-trees
+            x and y, every occurrence of:
+            ¬¬x with x
+            ¬(x∨y)</code> with (¬x∧¬y)
+            ¬(x∧y) with (¬x∨¬y)
+            
+            Be careful of handling cases such as ¬¬¬¬¬x correctly (it
+            should be reduced to x)
+
+        '''
+        if self._child1 is not None:
+            self._child1.push_not_down()
+        if self._child2 is not None:
+            self._child2.push_not_down()
+
+        if self._type == NodeType.NOT:
+            if self._child1._type == NodeType.NOT:
+
+                childcopy = copy.deepcopy(self._child1._child1)
+                self._type = childcopy._type
+                self._child1 = childcopy._child1
+                self._child2 = childcopy._child2
+
+            elif self._child1._type == NodeType.AND:
+                
+                self_copy1 = copy.deepcopy(self) 
+                self_copy1._child1 = copy.deepcopy(self._child1._child1)
+                self_copy1._child2 = None
+
+                self_copy2 = copy.deepcopy(self)
+                self_copy2._child1 = copy.deepcopy(self._child1._child2)
+                self_copy2._child2 = None
+
+                self._type = NodeType.OR
+
+                self._child1 = self_copy1
+
+                self._child2 = self_copy2
+
+            elif self._child1._type == NodeType.OR:
+                
+                # ----- create new NOT TreeNodes 
+                self_copy1 = copy.deepcopy(self) 
+                self_copy1._child1 = copy.deepcopy(self._child1._child1)
+                self_copy1._child2 = None
+
+                self_copy2 = copy.deepcopy(self)
+                self_copy2._child1 = copy.deepcopy(self._child1._child2)
+                self_copy2._child2 = None
+
+                self._type = NodeType.AND
+
+                self._child1 = self_copy1
+
+                self._child2 = self_copy2
+
+
 
 
     def __str__(self):
