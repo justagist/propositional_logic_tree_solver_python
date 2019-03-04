@@ -192,12 +192,10 @@ class BinaryTreeNode:
             Recursively replace in-place, for sub-trees
             x and y, every occurrence of:
             ¬¬x with x
-            ¬(x∨y)</code> with (¬x∧¬y)
+            ¬(x∨y) with (¬x∧¬y)
             ¬(x∧y) with (¬x∨¬y)
+            ¬¬¬¬¬x should be reduced to x
             
-            Be careful of handling cases such as ¬¬¬¬¬x correctly (it
-            should be reduced to x)
-
         '''
         if self._child1 is not None:
             self._child1.push_not_down()
@@ -244,6 +242,62 @@ class BinaryTreeNode:
                 self._child1 = self_copy1
 
                 self._child2 = self_copy2
+
+    def push_or_below_and(self):
+
+        '''
+            Recursively replace in place, for sub-trees x, y, and z, every occurrence of:
+            
+            x∨(y∧z) with (x∨y)∧(x∨z)
+            (x∧y)∨z with (x∨z)∧(y∨z)
+
+            This step is also knows as "distributing OR over AND"
+            
+        '''
+
+        if self._child1 is not None:
+            self._child1.push_or_below_and()
+        if self._child2 is not None:
+            self._child2.push_or_below_and()
+
+
+        if self._type == NodeType.OR:
+            if self._child1._type == NodeType.AND:
+                self_copy = copy.deepcopy(self)
+                childcopy = copy.deepcopy(self._child2)
+                child12_copy = copy.deepcopy(self._child1._child2)
+
+                self._type = NodeType.AND
+                
+                self._child1._type = NodeType.OR
+                self._child1._child2 = copy.deepcopy(childcopy)
+
+                self._child2._type = NodeType.OR
+                self._child2._child1 = copy.deepcopy(child12_copy)
+                self._child2._child2 = copy.deepcopy(childcopy)
+
+            elif self._child2._type == NodeType.AND:
+                self_copy = copy.deepcopy(self)
+                childcopy = copy.deepcopy(self._child1)
+                child21_copy = copy.deepcopy(self._child2._child1)
+
+                self._type = NodeType.AND
+                
+                self._child2._type = NodeType.OR
+                self._child2._child1 = copy.deepcopy(childcopy)
+
+                self._child1._type = NodeType.OR
+                self._child1._child2 = copy.deepcopy(child21_copy)
+                self._child1._child1 = copy.deepcopy(childcopy)
+
+            self._child1.push_or_below_and()
+            self._child2.push_or_below_and()
+
+            # if self._child1._type == NodeType.OR:
+                
+
+
+
 
 
 

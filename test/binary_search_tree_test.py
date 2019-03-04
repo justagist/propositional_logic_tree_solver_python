@@ -20,7 +20,7 @@ class BinaryTreeUnitTest(unittest.TestCase):
 
         logging.debug("Constructed: " + pltree.in_prefix_notation())
         logging.debug("Constructed: " + pltree.in_infix_notation())
-        
+
         self.assertEqual(pltree.in_prefix_notation(),"implies(or(R,P),and(true,not(Q)))")
         self.assertEqual(pltree.in_infix_notation(),"((R∨P)→(⊤∧¬Q))")
         typeListReturned = pltree.get_reverse_polish()
@@ -64,9 +64,6 @@ class BinaryTreeUnitTest(unittest.TestCase):
 
         # ===== Push Not Down ===== 
 
-        # typeList = [ NodeType.R, NodeType.NOT, NodeType.NOT, NodeType.NOT, NodeType.NOT, NodeType.NOT ]
-        # logging.debug("typeList: %s"%str(typeList))
-        # pltree = BinaryTreeNode.build_from_reverse_polish(typeList)
 
         pltree.push_not_down()
 
@@ -82,6 +79,21 @@ class BinaryTreeUnitTest(unittest.TestCase):
 
 
         # ====== Push Or Below And =====
+
+        # typeList = [ NodeType.P, NodeType.Q, NodeType.R, NodeType.AND,  NodeType.OR]
+        # logging.debug("typeList: %s"%str(typeList))
+        # pltree = BinaryTreeNode.build_from_reverse_polish(typeList)
+        pltree.push_or_below_and()
+
+        logging.debug("Push Or Below And: %s"%pltree.in_prefix_notation())
+        logging.debug("Push Or Below And: %s"%pltree.in_infix_notation())
+
+        self.assertEqual(pltree.in_prefix_notation(),"and(and(or(not(false),true),or(not(false),not(Q))),and(or(not(true),true),or(not(true),not(Q))))")
+
+        typeListReturned = pltree.get_reverse_polish()
+        logging.debug("typeListReturned: " + str(typeListReturned))
+
+        self.assertEqual(str(typeListReturned).lower(),"[FALSE, NOT, TRUE, OR, FALSE, NOT, Q, NOT, OR, AND, TRUE, NOT, TRUE, OR, TRUE, NOT, Q, NOT, OR, AND, AND]".lower())
 
 
 
