@@ -1,6 +1,6 @@
 
 
-class NodeTypeBase(object):
+class NodeTypeBase():
 
     def __init__(self, prefix_name, infix_name, arity, is_var = False):
         '''
@@ -74,7 +74,7 @@ class NodeType():
     
     import string
     '''
-        Create NodeTypeBase objects of type A = NodeTypeBase.Variable("A")
+        Create NodeTypeBase objects of type A = NodeTypeBase.Variable("A") for all uppercase alphabets A - Z
     '''
     for a in list(string.ascii_letters):
         exec("%s = NodeTypeBase.Variable('%s')" % (a, a))

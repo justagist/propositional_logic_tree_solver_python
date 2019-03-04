@@ -1,8 +1,8 @@
 import copy
-from bst_src import NodeType
+from plt_src import NodeType
 
 
-class BinaryTreeNode:
+class PLTreeNode:
 
     def __init__(self, nodetype:NodeType, child1 = None, child2 = None):
         '''
@@ -143,7 +143,7 @@ class BinaryTreeNode:
 
         '''
             Applies a set of variable bindings recursively to the propositional logic
-            expression represented by the current <BinaryTreeNode>
+            expression represented by the current <PLTreeNode>
             
             @Args: bindings
                        A map that maps NodeType objects to boolean
@@ -197,18 +197,17 @@ class BinaryTreeNode:
             ¬¬¬¬¬x should be reduced to x
             
         '''
-        if self._child1 is not None:
-            self._child1.push_not_down()
-        if self._child2 is not None:
-            self._child2.push_not_down()
 
         if self._type == NodeType.NOT:
             if self._child1._type == NodeType.NOT:
 
+                # print (self.in_infix_notation(),"this")
                 childcopy = copy.deepcopy(self._child1._child1)
                 self._type = childcopy._type
                 self._child1 = childcopy._child1
                 self._child2 = childcopy._child2
+
+                # print (self.in_infix_notation(),"this")
 
             elif self._child1._type == NodeType.AND:
                 
@@ -242,6 +241,13 @@ class BinaryTreeNode:
                 self._child1 = self_copy1
 
                 self._child2 = self_copy2
+
+
+        if self._child1 is not None:
+            self._child1.push_not_down()
+        if self._child2 is not None:
+            self._child2.push_not_down()
+
 
     def push_or_below_and(self):
 
@@ -293,12 +299,226 @@ class BinaryTreeNode:
             self._child1.push_or_below_and()
             self._child2.push_or_below_and()
 
-            # if self._child1._type == NodeType.OR:
+    def make_and_or_right_deep(self):
+
+        '''
+            Recursively replace in place, for sub-trees
+            W, X, Y and Z, every
+            occurrence of:
+            
+            (X∨Y)∨Z with X∨(Y∨Z)
+            (X∧Y)∧Z with X∧(Y∧Z)
+           
+            This is the closest we can come in a binary tree representation to
+            "flattening" the conjunctions and disjunctions as the last step in
+            producing Conjunctive Normal Form. The result is to turn complex trees of
+            nested conjunctions into a simple right deep tree of conjunctions and
+            similarly for disjunctions Thus this will change:
+            
+            (W∨X)∨(Y∨Z) into W∨(X∨(Y∨Z))
+            ((W∨X)∨Y)∨Z into W∨(X∨(Y∨Z))
+            
+        '''
+
+        if self._type == NodeType.OR and self._child1._type == NodeType.OR:
+            child11copy = copy.deepcopy(self._child1._child1)
+            child12copy = copy.deepcopy(self._child1._child2)
+            child2copy  = copy.deepcopy(self._child2)
+
+            self._child1 = child11copy
+
+            self._child2._type = NodeType.OR
+            self._child2._child1 = child12copy
+            self._child2._child2 = child2copy
+
+        elif self._type == NodeType.AND and self._child1._type == NodeType.AND:
+            child11copy = copy.deepcopy(self._child1._child1)
+            child12copy = copy.deepcopy(self._child1._child2)
+            child2copy  = copy.deepcopy(self._child2)
+
+            self._child1 = child11copy
+
+            self._child2._type = NodeType.AND
+            self._child2._child1 = child12copy
+            self._child2._child2 = child2copy
+
+        if self._child1 is not None:
+            self._child1.make_and_or_right_deep()
+        if self._child2 is not None:
+            self._child2.make_and_or_right_deep()
+
+
+    def evaluate_constant_subtrees(self):
+        '''
+            Evaluate the logical expression tree recursively, updating it in
+            place to reduce constant sub-trees (i.e. those containing no
+            variables) and make simplifications that do not require deep comparisons.
+            
+            Thus ⊥∧A should be reduced to ⊥, as it has to
+            be ⊥ no matter what value A takes.
+    
+            Similarly ⊥∧(A∨B) should be reduced to ⊥, as it
+            has to be ⊥ no matter what value the right sub-expression
+            (A∨B) takes.
+            
+            A further example: A tree that is the logical AND of one expression and
+            the logical NOT of the same expression must be false. However, that can
+            only be discovered by doing a deep comparison of the two sub-trees and
+            therefore should not be done. A simple example of this is
+            A∧¬A. In this case, although both sub-expressions are the
+            same variable and are easy to compare, we should not make the evaluation
+            to ⊥ because we should not make comparisons that two
+            sub-expressions are equal
+    
+            
+            @Return:
+                    True if this tree evaluates to true,
+                    False if this tree evaluates to false
+                    None if this tree cannot be fully evaluated to either true or false
+            
+        '''
+
+        if self._type == NodeType.TRUE:
+            return True
+        elif self._type == NodeType.FALSE:
+            return False
+
+        if self._type._arity == 0:
+            return None
+        elif self._type._arity == 1:
+            val = self._child1.evaluate_constant_subtrees()
+            if val is not None:
+                if val == True:
+                    self._type = NodeType.TRUE
+                    self._child1 = None
+                    self._child2 = None
+                elif val == False:
+                    self._type = NodeType.FALSE
+                    self._child1 = None
+                    self._child2 = None
+            else:
+                return None
+
+        elif self._type.arity == 2:
+            child1_val = self._child1.evaluate_constant_subtrees()
+            child2_val = self._child2.evaluate_constant_subtrees()
+            child1_copy = copy.deepcopy(self._child1)
+            child2_copy = copy.deepcopy(self._child2)
+
+            if child1_val == None and child2_val == None:
+                return None
+
+            elif child1_val == True and child2_val == True:
+                self._type = NodeType.TRUE
+                self._child1 = None
+                self._child2 = None
                 
 
+            elif self._type == NodeType.AND:
+                if child1_val == False or child2_val == False:
+                    self._type = NodeType.FALSE
+                    self._child1 = None
+                    self._child2 = None
+                    
 
+                elif child1_val == True:
 
+                    self._type = child2_copy._type
+                    self._child1 = child2_copy._child1
+                    self._child2 = child2_copy._child2
 
+                elif child2_val == True:
+                    self._type = child1_copy._type
+                    self._child1 = child1_copy._child1
+                    self._child2 = child1_copy._child2
+
+            elif child1_val == True:
+
+                if child2_val == False:
+                    if self._type == NodeType.OR:
+                        self._type = NodeType.TRUE
+                        self._child1 = None
+                        self._child2 = None
+                        
+                    elif self._type == NodeType.IMPLIES:
+                        self._type = NodeType.FALSE
+                        self._child1 = None
+                        self._child2 = None
+
+                if child2_val is None:
+                    if self._type == NodeType.OR:
+                        self._type = NodeType.TRUE
+                        self._child1 = None
+                        self._child2 = None
+                        
+                    elif self._type == NodeType.IMPLIES:
+                        self._type = child2_copy._type
+                        self._child1 = child2_copy._child1
+                        self._child2 = child2_copy._child2
+
+            elif child1_val == False:
+                if child2_val == True:
+                    # input()
+                    self._type = NodeType.TRUE
+                    self._child1 = None
+                    self._child2 = None
+                    
+
+                elif child2_val == False:
+                    if self._type == NodeType.OR:
+                        self._type = NodeType.FALSE
+                        self._child1 = None
+                        self._child2 = None
+                        
+                    elif self._type == NodeType.IMPLIES:
+                        self._type = NodeType.TRUE
+                        self._child1 = None
+                        self._child2 = None
+                elif child2_val is None:
+                    if self._type == NodeType.OR:
+                        self._type = child2_copy._type
+                        self._child1 = child2_copy._child1
+                        self._child2 = child2_copy._child2
+
+                    elif self._type == NodeType.IMPLIES:
+                        self._type = NodeType.TRUE
+                        self._child1 = None
+                        self._child2 = None
+
+            elif child1_val is None:
+                if child2_val == True:
+                    self._type = NodeType.TRUE
+                    self._child1 = None
+                    self._child2 = None
+                    
+                elif child2_val == False:
+                    self._type = child1_copy._type
+                    self._child1 = child1_copy._child1
+                    self._child2 = child1_copy._child2
+
+                elif child2_val is None:
+                    self._type = NodeType.NOT
+                    self._child1 = child1_copy
+
+        return self.evaluate_constant_subtrees()
+
+    def reduce_to_CNF(self):
+        '''
+            This takes the tree and executes all steps in
+            the correct order to reduce it to Conjunctive Normal Form (CNF)
+            
+            Note that it does NOT call evaluateConstantSubtrees(). This does not change the fact that
+            the result is in CNF, it just means that it is perhaps larger than it need be. Feel free to call
+            it at any time to simplify the results.
+            
+            Note that if you call the contained methods below in a different order, you are not guaranteed
+            to end up with an expression in CNF     
+
+        '''
+        self.eliminate_implies()
+        self.push_not_down()
+        self.push_or_below_and()
+        self.make_and_or_right_deep()
 
 
 
@@ -314,17 +534,13 @@ class BinaryTreeNode:
 
 if __name__ == '__main__':
     
-    c1 = BinaryTreeNode(NodeType.A)
-    c2 = BinaryTreeNode(NodeType.B)
-    a = BinaryTreeNode(NodeType.AND, c1, c2)
+    c1 = PLTreeNode(NodeType.A)
+    c2 = PLTreeNode(NodeType.B)
+    a = PLTreeNode(NodeType.AND, c1, c2)
 
     types = [NodeType.R, NodeType.P, NodeType.OR, NodeType.TRUE, NodeType.Q, NodeType.NOT, NodeType.AND, NodeType.IMPLIES]
 
-    tree = BinaryTreeNode.build_from_reverse_polish(types)
+    tree = PLTreeNode.build_from_reverse_polish(types)
 
     print (tree.in_infix_notation())
-
-    # print(a._child1._type == NodeType.A)
-    # print (a._child1.__dict__)
-    # print ()
 
